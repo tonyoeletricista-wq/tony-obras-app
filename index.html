@@ -1,1 +1,191 @@
-<!doctype html><html lang="pt-BR"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#071a2a"><meta name="description" content="Gestão de obras - Tony Eletricista"><title>Tony Eletricista | Gestão de Obras</title><link rel="stylesheet" href="style.css"></head><body><div id="login" class="login"><div class="login-card"><div class="bolt">⚡</div><h1>TONY <span>ELETRICISTA</span></h1><p>Gestão de obras com segurança e qualidade</p><label for="usuario">Login</label><input id="usuario" type="text" placeholder="Digite seu login" autocapitalize="none" autocomplete="username"><label for="senha">Senha</label><input id="senha" type="password" placeholder="Digite sua senha" autocomplete="current-password"><button id="entrar" type="button">Entrar</button><p id="aviso" class="aviso hidden"></p></div></div><div id="app" class="hidden"><div id="overlay" class="overlay hidden"></div><aside><div class="brand"><b>⚡ TONY</b><span>ELETRICISTA</span></div><button id="fecharMenu" class="close-menu" aria-label="Fechar menu">✕</button><nav id="nav"></nav><button class="logout" id="sair">Sair</button></aside><main><header><button id="menu" aria-label="Abrir menu">☰</button><div class="header-copy"><h2 id="titulo">Painel</h2><p id="subtitulo">Controle profissional das suas obras</p></div><button id="backup" class="outline">Exportar backup</button></header><section id="conteudo"></section></main></div><script src="app.js"></script></body></html>
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#071a2a">
+<title>Tony Eletricista | Gestão de Obras</title>
+<style>
+*{box-sizing:border-box}
+body{margin:0;background:#06131f;color:#f8fbff;font:16px system-ui,-apple-system,Segoe UI,sans-serif;padding:16px}
+h1{font-size:22px;margin:8px 0 4px}
+h1 span{color:#f2c94c}
+h2{font-size:18px;margin:0 0 12px}
+p.sub{color:#8da0af;margin:0 0 20px}
+.card{background:#102a3d;border:1px solid #1d4057;border-radius:14px;padding:16px;margin-bottom:14px}
+label{display:block;margin:12px 0 6px;color:#cbd7df;font-size:14px}
+input,select,textarea{width:100%;padding:12px;border:1px solid #2b4c61;border-radius:10px;background:#071723;color:#fff;font-size:16px}
+textarea{min-height:90px}
+button,a.btn{display:inline-block;border:0;border-radius:10px;padding:14px 18px;background:#f2c94c;color:#071a2a;font-weight:800;font-size:16px;text-decoration:none;cursor:pointer}
+a.btn{display:block;text-align:center;margin-bottom:14px}
+a.voltar{color:#f2c94c;text-decoration:none;font-weight:700;display:block;text-align:center;margin-top:16px}
+.aviso{padding:12px;border-radius:10px;background:#3a1520;border:1px solid #7a2637;color:#ffd9de;font-size:14px;margin-top:14px}
+.oculto{display:none}
+.registro{background:#102a3d;border:1px solid #1d4057;border-radius:12px;padding:14px;margin-bottom:10px}
+.registro small{color:#8da0af;display:block;margin-top:4px}
+a.link{color:#f2c94c;font-weight:700;text-decoration:none;display:inline-block;margin-top:8px}
+.vazio{color:#8da0af;text-align:center;padding:26px}
+</style>
+</head>
+<body>
+
+<div id="telaLogin">
+  <div class="card">
+    <h1>TONY <span>ELETRICISTA</span></h1>
+    <p class="sub">Gestão de obras com segurança e qualidade</p>
+    <label for="usuario">Login</label>
+    <input id="usuario" type="text" placeholder="Digite seu login" autocapitalize="none">
+    <label for="senha">Senha</label>
+    <input id="senha" type="password" placeholder="Digite sua senha">
+    <button id="entrar" type="button" style="width:100%;margin-top:20px">Entrar</button>
+    <div id="avisoLogin" class="aviso oculto"></div>
+  </div>
+</div>
+
+<div id="telaPainel" class="oculto">
+  <div class="card">
+    <h1>Painel</h1>
+    <p class="sub" id="resumo"></p>
+    <button id="sair" type="button" style="background:#102a3d;color:#fff">Sair</button>
+  </div>
+
+  <div class="card">
+    <h2>Obras e etapas</h2>
+    <div id="listaObras" class="vazio">Nenhuma obra cadastrada.</div>
+  </div>
+
+  <div class="card">
+    <h2>Registros da obra</h2>
+    <a class="btn" href="#novo-registro">+ Adicionar registro</a>
+    <div id="listaRegistros" class="vazio">Nenhum registro adicionado.</div>
+  </div>
+
+  <div class="card">
+    <h2>Dados da empresa</h2>
+    <label for="cfgEmpresa">Nome da empresa</label>
+    <input id="cfgEmpresa" type="text">
+    <label for="cfgResp">Responsável</label>
+    <input id="cfgResp" type="text">
+    <label for="cfgContato">Telefone / WhatsApp</label>
+    <input id="cfgContato" type="text">
+    <label for="cfgInsta">Instagram</label>
+    <input id="cfgInsta" type="text">
+    <button id="salvarCfg" type="button" style="width:100%;margin-top:18px">Salvar dados</button>
+    <div id="avisoPainel" class="aviso oculto"></div>
+  </div>
+</div>
+
+<div id="telaRegistro" class="oculto">
+  <div class="card">
+    <h1>Adicionar registro</h1>
+    <p class="sub">Tire a foto no celular, envie para o Google Drive, WhatsApp ou Instagram e cole aqui o link.</p>
+    <label for="rObra">Obra</label>
+    <select id="rObra"></select>
+    <label for="rTexto">Descrição do registro</label>
+    <input id="rTexto" type="text" placeholder="Ex.: Instalação do quadro concluída">
+    <label for="rData">Data</label>
+    <input id="rData" type="date">
+    <label for="rTipo">Tipo</label>
+    <select id="rTipo"><option>Foto</option><option>Vídeo</option><option>Documento</option></select>
+    <label for="rLink">Link do arquivo</label>
+    <input id="rLink" type="text" placeholder="https://drive.google.com/..." autocapitalize="none">
+    <button id="salvarRegistro" type="button" style="width:100%;margin-top:20px">Salvar registro</button>
+    <a class="voltar" href="#painel">Voltar</a>
+    <div id="avisoRegistro" class="aviso oculto"></div>
+  </div>
+</div>
+
+<script>
+var ls={
+  get:function(k,d){try{var v=localStorage.getItem(k);return v?JSON.parse(v):d}catch(e){return d}},
+  set:function(k,v){try{localStorage.setItem(k,JSON.stringify(v));return true}catch(e){return false}}
+};
+var cfg=ls.get('tony-app-config',{adminLogin:'tony',adminSenha:'TONY123',empresa:'Tony Eletricista',responsavel:'Tony',contato:'',instagram:'@tonyeletricistaa'});
+var obras=ls.get('tony-app-obras',[]);
+var registros=ls.get('tony-app-registros',[]);
+
+function mostra(id){
+  ['telaLogin','telaPainel','telaRegistro'].forEach(function(t){
+    var el=document.getElementById(t);
+    if(el)el.className=(t===id?'':'oculto');
+  });
+  window.scrollTo(0,0);
+}
+function diz(id,m){var el=document.getElementById(id);if(el){el.textContent=m;el.className='aviso'}}
+function limpa(id){var el=document.getElementById(id);if(el)el.className='aviso oculto'}
+function nomeObra(id){var o=obras.filter(function(x){return x.id===id})[0];return o?o.nome:'-'}
+function brl(v){return (+v||0).toLocaleString('pt-BR',{style:'currency',currency:'BRL'})}
+
+function desenhaPainel(){
+  document.getElementById('cfgEmpresa').value=cfg.empresa||'';
+  document.getElementById('cfgResp').value=cfg.responsavel||'';
+  document.getElementById('cfgContato').value=cfg.contato||'';
+  document.getElementById('cfgInsta').value=cfg.instagram||'';
+  var valor=obras.reduce(function(a,o){return a+(+o.valor||0)},0);
+  document.getElementById('resumo').textContent=obras.length+' obra(s) cadastrada(s) · '+brl(valor)+' em contratos';
+  var lo=document.getElementById('listaObras');
+  if(!obras.length){lo.className='vazio';lo.textContent='Nenhuma obra cadastrada.'}
+  else{lo.className='';
+    lo.innerHTML=obras.map(function(o){
+      return '<div class="registro"><b>'+o.nome+'</b><small>Cliente: '+(o.cliente||'-')+' · '+(o.status||'')+' · Valor: '+brl(o.valor)+'</small></div>';
+    }).join('')}
+  var lr=document.getElementById('listaRegistros');
+  if(!registros.length){lr.className='vazio';lr.textContent='Nenhum registro adicionado.'}
+  else{lr.className='';
+    lr.innerHTML=registros.slice().reverse().map(function(r){
+      var link=r.link?'<a class="link" href="'+r.link+'" target="_blank" rel="noopener">Abrir '+r.tipo+'</a>':'';
+      return '<div class="registro"><b>'+r.obraNome+'</b>'+link+'<small>'+(r.texto||'')+'</small><small>'+(r.tipo||'')+' · '+(r.dataReg||'')+'</small></div>';
+    }).join('')}
+}
+function montaObras(){
+  var sel=document.getElementById('rObra');
+  sel.innerHTML=obras.length
+    ? obras.map(function(o){return '<option value="'+o.id+'">'+o.nome+'</option>'}).join('')
+    : '<option value="">Nenhuma obra cadastrada</option>';
+}
+function rota(){
+  var h=(location.hash||'').replace('#','');
+  if(h==='novo-registro'){montaObras();mostra('telaRegistro')}
+  else if(h==='painel'){desenhaPainel();mostra('telaPainel')}
+}
+
+document.getElementById('entrar').onclick=function(){
+  var u=(document.getElementById('usuario').value||'').trim().toLowerCase();
+  var s=document.getElementById('senha').value||'';
+  if(!u||!s){diz('avisoLogin','Preencha o login e a senha.');return}
+  if(u===String(cfg.adminLogin).toLowerCase()&&s===cfg.adminSenha){limpa('avisoLogin');desenhaPainel();mostra('telaPainel');return}
+  diz('avisoLogin','Login ou senha inválidos.');
+};
+document.getElementById('senha').onkeydown=function(e){if(e.key==='Enter')document.getElementById('entrar').click()};
+document.getElementById('sair').onclick=function(){mostra('telaLogin')};
+document.getElementById('salvarCfg').onclick=function(){
+  cfg.empresa=document.getElementById('cfgEmpresa').value;
+  cfg.responsavel=document.getElementById('cfgResp').value;
+  cfg.contato=document.getElementById('cfgContato').value;
+  cfg.instagram=document.getElementById('cfgInsta').value;
+  ls.set('tony-app-config',cfg);
+  diz('avisoPainel','Dados salvos.');
+};
+document.getElementById('salvarRegistro').onclick=function(){
+  var obra=document.getElementById('rObra').value;
+  var texto=(document.getElementById('rTexto').value||'').trim();
+  var link=(document.getElementById('rLink').value||'').trim();
+  var data=document.getElementById('rData').value;
+  var tipo=document.getElementById('rTipo').value;
+  if(!obra){diz('avisoRegistro','Cadastre uma obra primeiro.');return}
+  if(!texto){diz('avisoRegistro','Escreva uma descrição para o registro.');return}
+  registros.push({id:'REG-'+Date.now(),obra:obra,obraNome:nomeObra(obra),texto:texto,tipo:tipo,link:link,
+    dataReg:data?(data.split('-').reverse().join('/')):new Date().toLocaleDateString('pt-BR')});
+  if(!ls.set('tony-app-registros',registros)){registros.pop();diz('avisoRegistro','Armazenamento cheio.');return}
+  limpa('avisoRegistro');
+  document.getElementById('rTexto').value='';
+  document.getElementById('rLink').value='';
+  desenhaPainel();
+  location.hash='#painel';
+};
+
+window.addEventListener('hashchange',rota);
+if(location.hash==='#novo-registro')rota();else mostra('telaLogin');
+</script>
+</body>
+</html>
