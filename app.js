@@ -51,21 +51,26 @@ function registrosHtml(soLeitura,filtroIds){
  var cards=lista.map(function(m){
   var abre=m.link?'<br><a href="'+esc(m.link)+'" target="_blank" rel="noopener" style="color:#f2c94c">Abrir '+(m.tipo||'registro')+'</a>':'';
   return '<div class="card"><p><b>'+esc(obraNome(m.obra))+'</b></p>'+(m.etapa?'<small>Etapa: '+esc(etapaNome(m.etapa))+'</small><br>':'')+'<small>'+esc(m.texto||'')+'</small><br><small>'+esc(m.tipo||'')+' · '+esc(m.dataReg||'')+'</small>'+abre+(soLeitura?'':'<br><button class="danger" data-delregistro="'+m.id+'">Excluir</button>')+'</div>'});
- var barra=soLeitura?'':'<div class="toolbar"><button id="addRegistro">Adicionar registro</button></div>';
+ var barra=soLeitura?'':'<div class="toolbar">'+botaoRegistrar()+'</div>';
  return barra+'<div class="panel"><div class="media-grid">'+(cards.join('')||'<div class="empty">Nenhum registro adicionado. Use o botão acima para registrar fotos, vídeos e documentos por link.</div>')+'</div></div>'}
-function minhaObra(){var os=db.obras.filter(function(o){return o.cliente===session.cliente});
- return os.map(function(o){return '<div class="card" style="margin-bottom:15px"><h3>'+esc(o.nome)+'</h3><p>'+esc(o.descricao)+'</p><p><span class="badge">'+esc(o.status)+'</span> &nbsp; Previsão: '+(o.fim?dataBR(o.fim):'A definir')+'</p><div class="bar"><i style="width:'+o.progresso+'%"></i></div><p>'+o.progresso+'% concluído</p></div>'}).join('')||'<div class="empty">Nenhuma obra vinculada.</div>'}
-function clienteNome(id){var c=db.clientes.filter(function(x){return x.id===id})[0];return c?c.nome:'-'}
-function clienteObj(id){return db.clientes.filter(function(x){return x.id===id})[0]||{}}
-function obraNome(id){var o=db.obras.filter(function(x){return x.id===id})[0];return o?o.nome:'-'}
-function etapaNome(id){var e=db.etapas.filter(function(x){return x.id===id})[0];return e?e.nome:'-'}
-function modal(t,corpo,idBotao,rotulo){idBotao=idBotao||'salvar';rotulo=rotulo||'Salvar';
- document.body.insertAdjacentHTML('beforeend','<div class="modal"><div class="modal-card"><div class="modal-head"><h3>'+t+'</h3><button id="fecha">✕</button></div>'+corpo+'<button type="button" id="'+idBotao+'" style="margin-top:18px">'+rotulo+'</button></div></div>');
- $('#fecha').onclick=function(){var m=$('.modal');if(m)m.remove()}}
-function opcoesClientes(sel){return db.clientes.map(function(c){return '<option value="'+c.id+'" '+(c.id===sel?'selected':'')+'>'+esc(c.nome)+'</option>'}).join('')}
-function opcoesObras(sel){return db.obras.map(function(o){return '<option value="'+o.id+'" '+(o.id===sel?'selected':'')+'>'+esc(o.nome)+' — '+esc(clienteNome(o.cliente))+'</option>'}).join('')}
-function opcoesEtapas(obraId,sel){return db.etapas.filter(function(e){return !obraId||e.obra===obraId}).map(function(e){return '<option value="'+e.id+'" '+(e.id===sel?'selected':'')+'>'+esc(e.nome)+'</option>'}).join('')}
-var MODELO=[['Levantamento e projeto',10],['Infraestrutura e eletrodutos',20],['Passagem de cabos',20],['Quadro de distribuição',15],['Tomadas e interruptores',15],['Iluminação',10],['Testes e entrega',10]];
+function botaoRegistrar(){return '<button type="button" onclick="abrirRegistro()">Adicionar registro</button>'}
+function abrirRegistro(){
+ if(!db.obras.length){erro('Cadastre uma obra antes de adicionar registros.');return}
+ modal('Adicionar registro da obra','<div class="hint">Tire a foto no celular, envie para o Google Drive, WhatsApp ou Instagram e cole aqui o link. Assim o aplicativo fica leve e não trava.</div><label>Obra<select id="f_obra">'+opcoesObras()+'</select></label><label>Etapa (opcional)<select id="f_etapa"><option value="">Sem etapa</option>'+opcoesEtapas((db.obras[0]||{}).id)+'</select></label><label>Descrição<input id="f_texto" placeholder="Ex.: Instalação do quadro concluída"></label><label>Data<input id="f_data" type="date"></label><label>Tipo<select id="f_tipo"><option>Foto</option><option>Vídeo</option><option>Documento</option></select></label><label>Link do arquivo<input id="f_link" placeholder="https://drive.google.com/..." autocapitalize="none"></label>','salvarRegistro','Salvar registro');
+ var selObra=$('#f_obra'),selEtapa=$('#f_etapa');
+ selObra.onchange=function(){selEtapa.innerHTML='<option value="">Sem etapa</option>'+opcoesEtapas(selObra.value)};
+ $('#salvarRegistro').onclick=function(){
+  var texto=$('#f_texto').value.trim(),link=$('#f_link').value.trim(),data=$('#f_data').value,tipo=$('#f_tipo').value;
+  if(!texto){erro('Escreva uma descrição para o registro.');return}
+  var obraSel=selObra.value||(db.obras[0]||{}).id;if(!obraSel){erro('Selecione uma obra.');return}
+  db.registros.push({id:'REG-'+Date.now(),obra:obraSel,etapa:selEtapa.value||'',texto:texto,tipo:tipo,link:link,dataReg:data?dataBR(data):new Date().toLocaleDateString('pt-BR')});
+  if(!save()){db.registros.pop();return}
+  var m=$('.modal');if(m)m.remove();go('Registros')}}
+window.abrirRegistro=abrirRegistro;
+function recalcularObra(obraId){var es=db.etapas.filter(function(e){return e.obra===obraId});if(!es.length)return;
+ var soma=es.reduce(function(a,e){return a+(+e.peso||0)},0)||1;
+ var p=Math.round(es.reduce(function(a,e){return a+(+e.peso||0)*(+e.progresso||0)},0)/soma);
+ var o=db.obras.filter(function(x){return x.id===obraId})[0];if(o)o.progresso=Math.min(100,Math.max(0,p))}
 function formCliente(id){var c=db.clientes.filter(function(x){return x.id===id})[0]||{};
  modal('Cliente','<div class="form-grid"><label>Nome<input id="f_nome" value="'+esc(c.nome||'')+'"></label><label>Telefone<input id="f_tel" value="'+esc(c.telefone||'')+'"></label><label>E-mail<input id="f_email" value="'+esc(c.email||'')+'"></label><label>Endereço<input id="f_end" value="'+esc(c.endereco||'')+'"></label><label>Login do cliente<input id="f_login" value="'+esc(c.login||'')+'"></label><label>Senha<input id="f_senha" type="password" placeholder="'+(id?'Deixe vazio para manter':'Crie uma senha')+'"></label></div>');
  $('#salvar').onclick=function(){var log=$('#f_login').value.trim();
@@ -97,24 +102,16 @@ function formOrc(){if(!db.clientes.length||!db.obras.length){erro('Cadastre um c
  $('#mais').onclick=function(){$('#itens').insertAdjacentHTML('beforeend',$('.item').outerHTML);wire()};wire();
  $('#salvar').onclick=function(){var itens=$$('.item').map(function(i){return{nome:i.querySelector('.it_nome').value,qtd:+i.querySelector('.it_qtd').value,valor:+i.querySelector('.it_val').value,desconto:+i.querySelector('.it_desc').value}});
   db.orcamentos.push({id:'ORC-'+Date.now(),cliente:$('#f_cli').value,obra:$('#f_obra').value,data:new Date().toLocaleDateString('pt-BR'),itens:itens,total:calc()});save();var m=$('.modal');if(m)m.remove();go('Orçamentos')}}
-function formRegistro(){if(!db.obras.length){erro('Cadastre uma obra antes de adicionar registros.');return}
- modal('Adicionar registro da obra','<div class="hint">Tire a foto no celular, envie para o Google Drive, WhatsApp ou Instagram e cole aqui o link. Assim o aplicativo fica leve e não trava.</div><label>Obra<select id="f_obra">'+opcoesObras()+'</select></label><label>Etapa (opcional)<select id="f_etapa"><option value="">Sem etapa</option>'+opcoesEtapas((db.obras[0]||{}).id)+'</select></label><label>Descrição<input id="f_texto" placeholder="Ex.: Instalação do quadro concluída"></label><label>Data<input id="f_data" type="date"></label><label>Tipo<select id="f_tipo"><option>Foto</option><option>Vídeo</option><option>Documento</option></select></label><label>Link do arquivo<input id="f_link" placeholder="https://drive.google.com/..." autocapitalize="none"></label>','salvarRegistro','Salvar registro');
- var selObra=$('#f_obra'),selEtapa=$('#f_etapa');
- selObra.onchange=function(){selEtapa.innerHTML='<option value="">Sem etapa</option>'+opcoesEtapas(selObra.value)};
- $('#salvarRegistro').onclick=function(){
-  var texto=$('#f_texto').value.trim(),link=$('#f_link').value.trim(),data=$('#f_data').value,tipo=$('#f_tipo').value;
-  if(!texto){erro('Escreva uma descrição para o registro.');return}
-  var obraSel=selObra.value||(db.obras[0]||{}).id;if(!obraSel){erro('Selecione uma obra.');return}
-  db.registros.push({id:'REG-'+Date.now(),obra:obraSel,etapa:selEtapa.value||'',texto:texto,tipo:tipo,link:link,dataReg:data?dataBR(data):new Date().toLocaleDateString('pt-BR')});
-  if(!save()){db.registros.pop();return}
-  var m=$('.modal');if(m)m.remove();go('Registros')}}
-function recalcularObra(obraId){var es=db.etapas.filter(function(e){return e.obra===obraId});if(!es.length)return;
- var soma=es.reduce(function(a,e){return a+(+e.peso||0)},0)||1;
- var p=Math.round(es.reduce(function(a,e){return a+(+e.peso||0)*(+e.progresso||0)},0)/soma);
- var o=db.obras.filter(function(x){return x.id===obraId})[0];if(o)o.progresso=Math.min(100,Math.max(0,p))}
+function modal(t,corpo,idBotao,rotulo){idBotao=idBotao||'salvar';rotulo=rotulo||'Salvar';
+ document.body.insertAdjacentHTML('beforeend','<div class="modal"><div class="modal-card"><div class="modal-head"><h3>'+t+'</h3><button id="fecha">✕</button></div>'+corpo+'<button type="button" id="'+idBotao+'" style="margin-top:18px">'+rotulo+'</button></div></div>');
+ $('#fecha').onclick=function(){var m=$('.modal');if(m)m.remove()}}
+function opcoesClientes(sel){return db.clientes.map(function(c){return '<option value="'+c.id+'" '+(c.id===sel?'selected':'')+'>'+esc(c.nome)+'</option>'}).join('')}
+function opcoesObras(sel){return db.obras.map(function(o){return '<option value="'+o.id+'" '+(o.id===sel?'selected':'')+'>'+esc(o.nome)+' — '+esc(clienteNome(o.cliente))+'</option>'}).join('')}
+function opcoesEtapas(obraId,sel){return db.etapas.filter(function(e){return !obraId||e.obra===obraId}).map(function(e){return '<option value="'+e.id+'" '+(e.id===sel?'selected':'')+'>'+esc(e.nome)+'</option>'}).join('')}
+var MODELO=[['Levantamento e projeto',10],['Infraestrutura e eletrodutos',20],['Passagem de cabos',20],['Quadro de distribuição',15],['Tomadas e interruptores',15],['Iluminação',10],['Testes e entrega',10]];
 function fichaObra(id){var o=db.obras.filter(function(x){return x.id===id})[0];if(!o)return;var c=clienteObj(o.cliente);
  var etapas=db.etapas.filter(function(e){return e.obra===o.id}),orcs=db.orcamentos.filter(function(x){return x.obra===o.id}),reg=db.registros.filter(function(m){return m.obra===o.id});
- modal('Ficha da obra','<div class="grid" style="grid-template-columns:repeat(3,1fr)"><div class="card metric"><b>'+o.progresso+'%</b><span>Progresso</span></div><div class="card metric"><b>'+etapas.length+'</b><span>Etapas</span></div><div class="card metric"><b>'+reg.length+'</b><span>Registros</span></div></div><div class="panel"><h3>'+esc(o.nome)+'</h3><p>'+esc(o.descricao||'')+'</p><p><b>Cliente:</b> '+esc(c.nome||'-')+' · '+esc(c.telefone||'sem telefone')+'</p><p><b>Endereço:</b> '+esc(o.endereco||'Não informado')+'</p><p><b>Status:</b> '+esc(o.status)+' · <b>Valor:</b> '+money(o.valor)+'</p><p><b>Início:</b> '+(o.inicio?dataBR(o.inicio):'A definir')+' · <b>Previsão:</b> '+(o.fim?dataBR(o.fim):'A definir')+'</p></div><div class="panel"><h3>Etapas</h3>'+(etapas.map(function(e){return '<div style="margin:14px 0"><b>'+esc(e.nome)+'</b><span style="float:right">'+e.progresso+'%</span><p>'+esc(e.status)+'</p><div class="bar"><i style="width:'+e.progresso+'%"></i></div></div>'}).join('')||'<div class="empty">Sem etapas.</div>')+'</div><div class="panel"><h3>Orçamentos vinculados</h3>'+(orcs.map(function(x){return '<p>'+esc(x.id)+' · '+esc(x.data)+' · '+money(x.total)+'</p>'}).join('')||'<div class="empty">Nenhum orçamento.</div>')+'</div>','fecharFicha','Fechar');
+ modal('Ficha da obra','<div class="grid" style="grid-template-columns:repeat(3,1fr)"><div class="card metric"><b>'+o.progresso+'%</b><span>Progresso</span></div><div class="card metric"><b>'+etapas.length+'</b><span>Etapas</span></div><div class="card metric"><b>'+reg.length+'</b><span>Registros</span></div></div><div class="panel"><h3>'+esc(o.nome)+'</h3><p>'+esc(o.descricao||'')+'</p><p><b>Cliente:</b> '+esc(c.nome||'-')+' · '+esc(c.telefone||'sem telefone')+'</p><p><b>Endereço:</b> '+esc(o.endereco||'Não informado')+'</p><p><b>Status:</b> '+esc(o.status)+' · <b>Valor:</b> '+money(o.valor)+'</p><p><b>Início:</b> '+(o.inicio?dataBR(o.inicio):'A definir')+' · <b>Previsão:</b> '+(o.fim?dataBR(o.fim):'A definir')+'</p></div>','fecharFicha','Fechar');
  $('#fecharFicha').onclick=function(){var m=$('.modal');if(m)m.remove()}}
 function bind(){
  var novo=$('#novo');
@@ -134,7 +131,6 @@ function bind(){
  onAll('delcli',function(b){if(confirm('Excluir este cliente?')){db.clientes=db.clientes.filter(function(x){return x.id!==b.dataset.delcli});save();go('Clientes')}});
  onAll('delorc',function(b){if(confirm('Excluir este orçamento?')){db.orcamentos=db.orcamentos.filter(function(x){return x.id!==b.dataset.delorc});save();go('Orçamentos')}});
  onAll('delregistro',function(b){if(confirm('Excluir este registro?')){db.registros=db.registros.filter(function(x){return x.id!==b.dataset.delregistro});save();go('Registros')}});
- if($('#addRegistro'))$('#addRegistro').onclick=formRegistro;
  if($('#salvarCfg'))$('#salvarCfg').onclick=function(){db.config.empresa=$('#cfgEmpresa').value;db.config.responsavel=$('#cfgResp').value;db.config.contato=$('#cfgContato').value;db.config.instagram=$('#cfgInsta').value;save();erro('Dados da empresa atualizados.')};
  if($('#salvarAdmin'))$('#salvarAdmin').onclick=function(){var l=$('#adminLogin').value.trim(),s=$('#adminSenha').value;
   if(!l){erro('Informe o login do administrador.');return}
